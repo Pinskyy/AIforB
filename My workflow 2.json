@@ -1,0 +1,61 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ccb8db9b-19b7-435b-b698-4197713c6a52",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "resource": "all",
+        "limit": 10,
+        "additionalFields": {
+          "keyword": "automation"
+        }
+      },
+      "type": "n8n-nodes-base.hackerNews",
+      "typeVersion": 1,
+      "position": [
+        208,
+        0
+      ],
+      "id": "13788185-a910-4d15-8e22-7fb879149f15",
+      "name": "Get many items",
+      "notesInFlow": true,
+      "notes": "Retrieve the 10 most recent articles"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Get many items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "77250f45-fa5a-4a38-9d85-ce731c7ea535",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8cc0eeade57669f0b770595d75740d782dc713341b8717109d9eab32ed5f8f6b"
+  },
+  "id": "ChB02ByeyACQEjrW",
+  "tags": []
+}
