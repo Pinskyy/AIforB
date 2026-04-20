@@ -1,0 +1,324 @@
+{
+  "name": "FAQ Chatbot",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        -416,
+        176
+      ],
+      "id": "a0cafd78-e7b5-451e-8f46-7292e81d94e4",
+      "name": "Telegram Trigger",
+      "webhookId": "fefab383-f3ba-43fd-9f1d-c6a631219b30",
+      "credentials": {
+        "telegramApi": {
+          "id": "g18uN5UdGv6IWagT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "48dd40ac-84fc-40f8-8c8c-fa18cb7765bc",
+              "name": "Chat",
+              "value": "={{ $json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        -208,
+        176
+      ],
+      "id": "905cf7ab-1d4a-4587-9c05-0b23aa015c65",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a94b55a0-92b8-4555-be3f-9547782fe881",
+              "leftValue": "={{ $json.Chat }}",
+              "rightValue": "SEO",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "16c34d66-66da-4fb3-8278-bbb1ea16ae53",
+              "leftValue": "={{ $json.Chat }}",
+              "rightValue": "Email Marketing",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "076666e4-466e-4eed-854d-7b7ecd48805b",
+              "leftValue": "={{ $json.Chat }}",
+              "rightValue": "CLV",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "28d4aa1b-0424-4ef7-9377-57f078a32c68",
+              "leftValue": "={{ $json.Chat }}",
+              "rightValue": "Marketing Funnel",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "b159ed6a-4ff3-4002-b537-5c84ce4aa04d",
+              "leftValue": "={{ $json.Chat }}",
+              "rightValue": "B2B Marketing",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        176
+      ],
+      "id": "c0eb6ecc-f402-469d-b2cf-ae9f63056d9f",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=={{ $json.Chat }}",
+        "options": {
+          "systemMessage": "Anda adalah AI FAQ Assistant spesialis pemasaran.\n\nTugas Anda adalah menjawab pertanyaan pengguna HANYA berdasarkan data yang tersedia di Google Sheets \"04-06 Pertanyaan untuk studi kasus chatbot\".\n\nATURAN PENTING:\n1. Gunakan Google Sheets sebagai satu-satunya sumber jawaban.\n2. Selalu cari data yang paling relevan dengan pertanyaan pengguna menggunakan tool yang tersedia.\n3. Jika pertanyaan tidak ditemukan atau tidak relevan dengan data di Google Sheets, jawab:\n   \"Maaf, pertanyaan tersebut belum tersedia di database kami. Silakan hubungi tim support.\"\n4. Jangan mengarang jawaban di luar data.\n5. Jawaban harus singkat, jelas, dan mudah dipahami.\n\nFORMAT JAWABAN:\n- Langsung jawab inti pertanyaan\n- Gunakan bahasa Indonesia yang sederhana\n- Maksimal 3–4 kalimat\n\nContoh:\nPertanyaan: Apa itu CLV?\nJawaban: CLV (Customer Lifetime Value) adalah nilai total yang dihasilkan seorang pelanggan selama mereka berinteraksi dengan bisnis.\n\nSelalu prioritaskan akurasi berdasarkan data."
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        80
+      ],
+      "id": "b24244d2-07b1-47fe-bd21-6f9c47b35ca9",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        208,
+        256
+      ],
+      "id": "29a580ce-e3b6-44c6-a479-a37a87e6aac9",
+      "name": "Google Gemini Chat Model",
+      "retryOnFail": false,
+      "waitBetweenTries": 10,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "acgwo3eL0dOyZWD4",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1H_cxq9rq_6rJY8V1uc5BlB5ZYUV87ehwsqpd9STwBEk",
+          "mode": "list",
+          "cachedResultName": "04-06 Pertanyaan untuk studi kasus chatbot",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1H_cxq9rq_6rJY8V1uc5BlB5ZYUV87ehwsqpd9STwBEk/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1H_cxq9rq_6rJY8V1uc5BlB5ZYUV87ehwsqpd9STwBEk/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheetsTool",
+      "typeVersion": 4.7,
+      "position": [
+        352,
+        224
+      ],
+      "id": "62f7453f-0596-47ba-b44f-502a64eca679",
+      "name": "Get row(s) in sheet in Google Sheets",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ePcZygUEiMBycAlQ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "=Harap bertanya menggunakan salah satu contoh:\n1. Apa perbedaan SEO dan SEM?\n2. Cara mengukur Email Marketing?\n3. Apa itu CLV?\n4. Strategi Awareness Funnel?\n5. Peran Webinar B2B?",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "bb781023-99be-4ef6-b98c-9e92afcb4417",
+      "name": "Output False",
+      "webhookId": "0913d0e2-5204-4e70-9d62-836cabf00613",
+      "credentials": {
+        "telegramApi": {
+          "id": "g18uN5UdGv6IWagT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Trigger').item.json.message.chat.id }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        560,
+        80
+      ],
+      "id": "b140dc6d-d3fc-4543-b67b-e7808c40cf04",
+      "name": "True Output",
+      "webhookId": "4a78d0a4-1f13-4350-a6c3-acf25a512c93",
+      "credentials": {
+        "telegramApi": {
+          "id": "g18uN5UdGv6IWagT",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Output False",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet in Google Sheets": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "True Output",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d863204d-ac20-4413-b4d1-efd1cc3f5298",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8cc0eeade57669f0b770595d75740d782dc713341b8717109d9eab32ed5f8f6b"
+  },
+  "id": "rwuAcz4rqCxIMRk8",
+  "tags": []
+}
