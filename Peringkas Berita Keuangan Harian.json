@@ -1,0 +1,327 @@
+{
+  "name": "Peringkas Berita Keuangan Harian",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 7
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -336,
+        192
+      ],
+      "id": "e41db12a-6baf-493a-9cae-fd5967b28be0",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        304,
+        176
+      ],
+      "id": "5fec9fa2-1a79-4622-82a5-9c1a08870553",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "fieldsToAggregate": {
+          "fieldToAggregate": [
+            {
+              "fieldToAggregate": "text"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.aggregate",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        544
+      ],
+      "id": "9ddc6f5c-6b40-48d5-ab55-db54d4e3afe7",
+      "name": "Aggregate"
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.link }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        688,
+        176
+      ],
+      "id": "78ca1837-0a18-4a5f-9b1e-924a25d20a07",
+      "name": "HTTP Request"
+    },
+    {
+      "parameters": {
+        "operation": "extractHtmlContent",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "text",
+              "cssSelector": "=article p"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.html",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        544
+      ],
+      "id": "0dda9583-7b18-4ed1-af4b-48e933a0bb63",
+      "name": "HTML"
+    },
+    {
+      "parameters": {
+        "chatId": "=1564368734",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        608,
+        544
+      ],
+      "id": "a0629cc2-ded4-4741-9021-3eaa6e03da57",
+      "name": "Send a text message",
+      "webhookId": "90b1760e-36ba-499a-ae5a-01db26dfd27a",
+      "credentials": {
+        "telegramApi": {
+          "id": "g18uN5UdGv6IWagT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "maxItems": 10
+      },
+      "type": "n8n-nodes-base.limit",
+      "typeVersion": 1,
+      "position": [
+        512,
+        176
+      ],
+      "id": "522e9569-664f-4a01-99b3-0dcbee74c85e",
+      "name": "Limit"
+    },
+    {
+      "parameters": {
+        "url": "https://www.cnbcindonesia.com/market/rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "e42e3b91-2d5e-4c5f-ac4d-adab9ee63832",
+      "name": "CNBC Indonesia RSS"
+    },
+    {
+      "parameters": {
+        "url": "https://finance.detik.com/rss",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.rssFeedRead",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        192
+      ],
+      "id": "65265697-bb78-4e78-8c18-7307257c362a",
+      "name": "Finance Detik RSS"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Berikut adalah 10 artikel berita keuangan hari ini:\n\n{{ $json.text }}\n\nRingkas menjadi 5 poin utama.",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        112,
+        544
+      ],
+      "id": "1408dec7-49a2-444c-b2c2-b427863637f3",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        48,
+        752
+      ],
+      "id": "3f9526f2-7729-4ca6-98b7-e654eea3b63e",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "EvihSL9IQBZQD8zf",
+          "name": "Groq account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "CNBC Indonesia RSS",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Finance Detik RSS",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Limit",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "HTML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTML": {
+      "main": [
+        [
+          {
+            "node": "Aggregate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Limit": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CNBC Indonesia RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finance Detik RSS": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "e529bfdf-101c-47c8-b8eb-866bcbe79601",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8cc0eeade57669f0b770595d75740d782dc713341b8717109d9eab32ed5f8f6b"
+  },
+  "id": "UfHnBatUw1eVDlCc",
+  "tags": []
+}

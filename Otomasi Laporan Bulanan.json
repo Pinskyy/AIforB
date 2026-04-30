@@ -1,0 +1,840 @@
+{
+  "name": "Otomasi Laporan Bulanan",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -224,
+        208
+      ],
+      "id": "17f3c5ac-b958-466d-bd0d-f67b98ffdcf9",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        352,
+        112
+      ],
+      "id": "1036d5e1-2b56-4bde-8c0b-d330aa7ba10c",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nitems.forEach(item => {\n  if (item.json && item.json['ID Laporan']) {\n    // Tambahkan kolom \"Sumber\" berdasarkan ID awal\n    if (item.json['ID Laporan'].startsWith('REP')) {\n      item.json.Sumber = 'Sheet1';\n    } else if (item.json['ID Laporan'].startsWith('LAP')) {\n      item.json.Sumber = 'Sheet2';\n    } else {\n      item.json.Sumber = 'Unknown';\n    }\n  }\n});\n\nreturn items;\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        112
+      ],
+      "id": "097fab41-3699-42f1-bcbb-8b389797da7e",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "ID Laporan",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        784,
+        112
+      ],
+      "id": "2a0e7ea2-baf1-452f-8e16-a107ed9fd913",
+      "name": "Remove Duplicates"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil semua item dari input (aman untuk semua mode)\nconst inputData = $input.all();\n\n// Ekstrak semua baris dari semua item\nconst allRows = inputData.flatMap(item =>\n  Array.isArray(item.json) ? item.json : [item.json]\n);\n\n// Proses tiap baris\nallRows.forEach(row => {\n  if (typeof row === 'object' && row !== null) {\n    if (row['ID Laporan']) row['ID Laporan'] = String(row['ID Laporan']).trim();\n    if (row.Bulan) row.Bulan = String(row.Bulan).trim();\n    if (row['Kategori Produk']) row['Kategori Produk'] = String(row['Kategori Produk']).trim();\n    if (row['Nama Produk']) row['Nama Produk'] = String(row['Nama Produk']).trim();\n\n    row['Jumlah Stok'] = parseFloat(row['Jumlah Stok']) || 0;\n    row['Penjualan Harian'] = parseFloat(row['Penjualan Harian']) || 0;\n    row['Harga Satuan (IDR)'] = parseFloat(row['Harga Satuan (IDR)']) || 0;\n    row['Total Penjualan (IDR)'] = parseFloat(row['Total Penjualan (IDR)']) || 0;\n  }\n});\n\n// Kembalikan sebagai daftar item terpisah\nreturn allRows.map(row => ({ json: row }));\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        192,
+        416
+      ],
+      "id": "bba025a6-9393-4b97-a7ba-b94bd69afdd4",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "compare": "selectedFields",
+        "fieldsToCompare": "ID Laporan",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.removeDuplicates",
+      "typeVersion": 2,
+      "position": [
+        400,
+        416
+      ],
+      "id": "3c26fb76-73c7-483d-8fc1-d363453edcbc",
+      "name": "Remove Duplicates1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil semua input (untuk aman di semua mode)\nconst inputData = $input.all();\n\n// Ekstrak semua baris\nconst allRows = inputData.flatMap(item =>\n  Array.isArray(item.json) ? item.json : [item.json]\n);\n\n// Transformasi setiap baris\nconst transformedRows = allRows.map(row => {\n  // Gabung Kategori + Nama Produk untuk kolom \"Produk\"\n  const produk = `${row['Kategori Produk'] || ''} ${row['Nama Produk'] || ''}`.trim();\n\n  // Buat objek baru dengan format Sheet 1 & 2\n  return {\n    'ID Laporan': row['ID Laporan'] ? String(row['ID Laporan']).trim() : '',\n    'Bulan': row.Bulan ? String(row.Bulan).trim() : '',\n    'Produk': produk,\n    'Wilayah': '-', // default, bisa diisi jika ada info wilayah\n    'Penjualan (Unit)': parseFloat(row['Penjualan Harian']) || 0,\n    'Target (Unit)': 0, // default, bisa diisi jika ada target\n    'Pendapatan (IDR)': parseFloat(row['Total Penjualan (IDR)']) || 0,\n    'Status': row['Karyawan Penanggung Jawab'] ? String(row['Karyawan Penanggung Jawab']).trim() : 'Tidak Diketahui',\n    'Keterangan': row['Catatan Status'] ? String(row['Catatan Status']).trim() : '',\n    'Tanggal Laporan': row.Bulan ? `${row.Bulan} 01, ${new Date().getFullYear()}` : ''\n  };\n});\n\n// Kembalikan sebagai array item terpisah\nreturn transformedRows.map(row => ({ json: row }));\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        608,
+        416
+      ],
+      "id": "1560d3d4-dfac-4a61-af13-3ea277add0a3",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil semua input (untuk aman di semua mode)\nconst inputData = $input.all();\n\n// Ekstrak semua baris\nconst allRows = inputData.flatMap(item =>\n  Array.isArray(item.json) ? item.json : [item.json]\n);\n\n// Transformasi setiap baris\nconst transformedRows = allRows.map(row => {\n  // Gabung Kategori + Nama Produk untuk kolom \"Produk\"\n  const produk = `${row['Kategori Produk'] || ''} ${row['Nama Produk'] || ''}`.trim();\n\n  // Buat objek baru dengan format Sheet 1 & 2\n  return {\n    'ID Laporan': row['ID Laporan'] ? String(row['ID Laporan']).trim() : '',\n    'Bulan': row.Bulan ? String(row.Bulan).trim() : '',\n    'Produk': row.Produk ? String(row.Produk).trim() : '',\n    'Wilayah': '-', \n    'Penjualan (Unit)': parseFloat(row['Penjualan (Unit)']) || 0,\n    'Target (Unit)': 0, \n    'Pendapatan (IDR)': parseFloat(row['Pendapatan (IDR)']) || 0,\n    'Status': row['Status'] ? String(row['Status']).trim() : '',\n    'Keterangan': row['Keterangan'] ? String(row['Keterangan']).trim() : '',\n    'Tanggal Laporan': row.Bulan ? `${row.Bulan} 01, ${new Date().getFullYear()}` : '',\n    'Sumber': 'Sheet 3' \n  };\n});\n\n// Kembalikan sebagai array item terpisah\nreturn transformedRows.map(row => ({ json: row }));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        416
+      ],
+      "id": "bc6e3770-93ca-4dda-b674-8b758b2ab925",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1360,
+        400
+      ],
+      "id": "88139bb6-c22b-4e63-9d41-c0aa041ebd97",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil SEMUA input dari semua jalur\nconst allInputs = $input.all();\n\n// Gabungkan semua baris dari semua input\nconst allRows = allInputs.flatMap(item =>\n  Array.isArray(item.json) ? item.json : [item.json]\n);\n\n// Filter hanya bulan ini\nconst now = new Date();\nconst currentMonthName = now.toLocaleString('id-ID', { month: 'long' });\nconst currentYear = now.getFullYear();\n\nconst monthlyData = allRows.filter(row => \n  String(row.Bulan || '').toLowerCase() === currentMonthName.toLowerCase()\n);\n\n// Hitung metrik\nconst totalPenjualanUnit = monthlyData.reduce((sum, r) => sum + (r['Penjualan (Unit)'] || 0), 0);\nconst totalPendapatan = monthlyData.reduce((sum, r) => sum + (r['Pendapatan (IDR)'] || 0), 0);\nconst totalLaporan = monthlyData.length;\n\n// Buat ringkasan\nconst laporan = {\n  'Bulan': currentMonthName,\n  'Tahun': currentYear,\n  'Jumlah_Laporan': totalLaporan,\n  'Total_Penjualan_Unit': totalPenjualanUnit,\n  'Total_Pendapatan_IDR': totalPendapatan,\n  'Rata_Rata_Penjualan_Per_Laporan': totalLaporan ? (totalPenjualanUnit / totalLaporan).toFixed(2) : 0,\n  'Rata_Rata_Pendapatan_Per_Laporan': totalLaporan ? (totalPendapatan / totalLaporan).toFixed(2) : 0,\n  'Sumber_Data': 'Sheet 1, Sheet 2, Sheet 3',\n  'Terakhir_Diperbarui': new Date().toISOString()\n};\n\n// Kembalikan HANYA 1 item\nreturn [{ json: laporan }];\n\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1584,
+        400
+      ],
+      "id": "432e0ee8-579c-4980-9eb4-5da1469c1934",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "chatId": "1564368734",
+        "text": "=📊 *Laporan Bulanan — {{$json.Bulan}} {{$json.Tahun}}*\n✅ *Jumlah Laporan*: {{$json.Jumlah_Laporan}}\n📦 *Penjualan Total*: {{$json.Total_Penjualan_Unit}} unit\n💰 *Pendapatan*: Rp{{ $json.Total_Pendapatan_IDR }}\n📈 *Rata-rata Penjualan*: {{$json.Rata_Rata_Penjualan_Per_Laporan}} unit/laporan\n📎 [Laporan Detail](https://docs.google.com/spreadsheets/d/1XgSB7caGKoqvUDOu00fJljwLOxscyEmvxuzQWkVJiFU/edit?usp=sharing)",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1824,
+        400
+      ],
+      "id": "33772daa-0be9-4fbe-8c78-6f4b876c29c1",
+      "name": "Send a text message",
+      "webhookId": "b6103b03-fd88-47c0-ae7f-de98d0855f22",
+      "credentials": {
+        "telegramApi": {
+          "id": "g18uN5UdGv6IWagT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "zmlrfn@gmail.com",
+        "subject": "Laporan Keuangan Bulanan",
+        "message": "=<!DOCTYPE html> <html> <head>   <style>     body { font-family: Arial, sans-serif; line-height: 1.6; }     .header { background: #0d47a1; color: white; padding: 15px; text-align: center; }     .content { padding: 20px; }     .metric { margin: 8px 0; font-weight: bold; }     .highlight { color: #1976d2; }   </style> </head> <body>   <div class=\"header\">     <h2>📊 Laporan Bulanan</h2>     <p>{{ $json.Bulan }} {{ $json.Tahun }}</p>   </div>   <div class=\"content\">     <p>Halo Tim,</p>     <p>Berikut ringkasan laporan bulanan dari data gabungan (Sheet 1, 2, dan 3):</p>          <div class=\"metric\">✅ Jumlah Laporan: <span class=\"highlight\">{{ $json.Jumlah_Laporan }}</span></div>     <div class=\"metric\">📦 Total Penjualan: <span class=\"highlight\">{{ $json.Total_Penjualan_Unit }} unit</span></div>     <div class=\"metric\">💰 Total Pendapatan: <span class=\"highlight\">Rp{{ $json.Total_Pendapatan_IDR }}</span></div>     <div class=\"metric\">📈 Rata-rata Penjualan/Laporan: <span class=\"highlight\">{{ $json.Rata_Rata_Penjualan_Per_Laporan }} unit</span></div>          <p>🔗 <a href=\"https://docs.google.com/spreadsheets/d/1XgSB7caGKoqvUDOu00fJljwLOxscyEmvxuzQWkVJiFU/edit?usp=sharing/d/...\">Lihat Master Sheet</a> \n <a href=\"https://docs.google.com/spreadsheets/d/1XgSB7caGKoqvUDOu00fJljwLOxscyEmvxuzQWkVJiFU/edit?usp=sharing/...\">Lihat Laporan Bulanan</a></p>            </div> </body> </html>",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1824,
+        592
+      ],
+      "id": "d35a0456-f9d0-4b4f-befe-73369216ac72",
+      "name": "Send a message",
+      "webhookId": "356ed13d-999e-42af-923c-1da098c9a2d3",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MZwvrYoFZzNTQrDQ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1pvB6BLcqmC8-GboYIxj7g17KOiPzd2k6lmhhpTDilzw",
+          "mode": "list",
+          "cachedResultName": "Dummy Keuangan 1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pvB6BLcqmC8-GboYIxj7g17KOiPzd2k6lmhhpTDilzw/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1pvB6BLcqmC8-GboYIxj7g17KOiPzd2k6lmhhpTDilzw/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        0,
+        0
+      ],
+      "id": "802f91b7-2e33-435d-aa71-bb4c6f8d3265",
+      "name": "Get row(s) in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ePcZygUEiMBycAlQ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "1HuCDoX_BzTebgYKfPaP8kJE8IAZ-6XtU5x28CaLP5ks",
+          "mode": "list",
+          "cachedResultName": "Dummy Keuangan 3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HuCDoX_BzTebgYKfPaP8kJE8IAZ-6XtU5x28CaLP5ks/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet3",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1HuCDoX_BzTebgYKfPaP8kJE8IAZ-6XtU5x28CaLP5ks/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -16,
+        416
+      ],
+      "id": "e3495402-1b22-476d-bac1-abb9de04ca50",
+      "name": "Get row(s) in sheet2",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ePcZygUEiMBycAlQ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1RV3J3rjBzbzrVOH1kM7TqKtKHwICdB0mfhSwKw8jnQo",
+          "mode": "list",
+          "cachedResultName": "Dummy Master Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RV3J3rjBzbzrVOH1kM7TqKtKHwICdB0mfhSwKw8jnQo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Master Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RV3J3rjBzbzrVOH1kM7TqKtKHwICdB0mfhSwKw8jnQo/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "ID Laporan"
+          ],
+          "schema": [
+            {
+              "id": "ID Laporan",
+              "displayName": "ID Laporan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Bulan",
+              "displayName": "Bulan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Produk",
+              "displayName": "Produk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Wilayah",
+              "displayName": "Wilayah",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Penjualan (Unit)",
+              "displayName": "Penjualan (Unit)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Target (Unit)",
+              "displayName": "Target (Unit)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Pendapatan (IDR)",
+              "displayName": "Pendapatan (IDR)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Status",
+              "displayName": "Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Keterangan",
+              "displayName": "Keterangan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Tanggal Laporan",
+              "displayName": "Tanggal Laporan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sumber",
+              "displayName": "Sumber",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Kategori Produk",
+              "displayName": "Kategori Produk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Nama Produk",
+              "displayName": "Nama Produk",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Jumlah Stok",
+              "displayName": "Jumlah Stok",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Penjualan Harian",
+              "displayName": "Penjualan Harian",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Harga Satuan (IDR)",
+              "displayName": "Harga Satuan (IDR)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total Penjualan (IDR)",
+              "displayName": "Total Penjualan (IDR)",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Karyawan Penanggung Jawab",
+              "displayName": "Karyawan Penanggung Jawab",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Catatan Status",
+              "displayName": "Catatan Status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1120,
+        112
+      ],
+      "id": "57ae2636-5b19-4054-85db-da2bd5cc0f96",
+      "name": "Append or update row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ePcZygUEiMBycAlQ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "15ha9hCD-MndEEun9qIhoKMEomKRMG7CziIbU23amWnE",
+          "mode": "list",
+          "cachedResultName": "Dummy Keuangan 2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15ha9hCD-MndEEun9qIhoKMEomKRMG7CziIbU23amWnE/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet2",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/15ha9hCD-MndEEun9qIhoKMEomKRMG7CziIbU23amWnE/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        -16,
+        208
+      ],
+      "id": "8d2d5ee0-606e-42a9-9f43-fa1756089cb4",
+      "name": "Get row(s) in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ePcZygUEiMBycAlQ",
+          "name": "Google Sheets account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "value": "1RV3J3rjBzbzrVOH1kM7TqKtKHwICdB0mfhSwKw8jnQo",
+          "mode": "list",
+          "cachedResultName": "Dummy Master Sheet",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RV3J3rjBzbzrVOH1kM7TqKtKHwICdB0mfhSwKw8jnQo/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": 613998999,
+          "mode": "list",
+          "cachedResultName": "Laporan Bulanan",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1RV3J3rjBzbzrVOH1kM7TqKtKHwICdB0mfhSwKw8jnQo/edit#gid=613998999"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [
+            "Bulan"
+          ],
+          "schema": [
+            {
+              "id": "Bulan",
+              "displayName": "Bulan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "Tahun",
+              "displayName": "Tahun",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Jumlah_Laporan",
+              "displayName": "Jumlah_Laporan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total_Penjualan_Unit",
+              "displayName": "Total_Penjualan_Unit",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Total_Pendapatan_IDR",
+              "displayName": "Total_Pendapatan_IDR",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rata_Rata_Penjualan_Per_Laporan",
+              "displayName": "Rata_Rata_Penjualan_Per_Laporan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Rata_Rata_Pendapatan_Per_Laporan",
+              "displayName": "Rata_Rata_Pendapatan_Per_Laporan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Sumber_Data",
+              "displayName": "Sumber_Data",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "Terakhir_Diperbarui",
+              "displayName": "Terakhir_Diperbarui",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ID Laporan",
+              "displayName": "ID Laporan",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1824,
+        208
+      ],
+      "id": "b82817e2-aa37-41c3-a92f-0ffc20af710a",
+      "name": "Append or update row in sheet1",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "ePcZygUEiMBycAlQ",
+          "name": "Google Sheets account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get row(s) in sheet",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get row(s) in sheet2",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get row(s) in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Remove Duplicates1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          },
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Remove Duplicates": {
+      "main": [
+        [
+          {
+            "node": "Append or update row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Send a text message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append or update row in sheet1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append or update row in sheet": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get row(s) in sheet1": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "34a980b9-243c-410e-af42-b3f18a6be7a2",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8cc0eeade57669f0b770595d75740d782dc713341b8717109d9eab32ed5f8f6b"
+  },
+  "id": "gd1McYyexrmhhNMa",
+  "tags": []
+}

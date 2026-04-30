@@ -1,0 +1,336 @@
+{
+  "name": "Sistem Triasi Phising AI",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {}
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -400,
+        192
+      ],
+      "id": "d5c5883c-c760-45ae-bd33-387ca3d68f5e",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MZwvrYoFZzNTQrDQ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "openai/gpt-oss-safeguard-20b",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        16,
+        400
+      ],
+      "id": "609378d4-2a7a-4a66-8e48-337edc6f784e",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "EvihSL9IQBZQD8zf",
+          "name": "Groq account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Ambil data dari node-node sebelumnya\n// $json.text adalah output dari Basic LLM Chain\nconst llmOutput = $json.text; \n\n// $json.id adalah Message ID yang datang dari \"Gmail Trigger\"\n// Node LLM Chain akan meneruskan data ini secara otomatis\nconst emailMessageId = $json.id; \n\n// Gunakan regex untuk menemukan \"Skor: [angka]\"\nconst match = llmOutput.match(/Skor:\\s*(\\d+)/);\n\nlet score = 0;\n\n// Jika ditemukan, ambil angkanya\nif (match && match[1]) {\n  score = parseInt(match[1], 10);\n}\n\n// Kembalikan skor DAN messageId untuk node IF dan Gmail\nreturn { \n  score: score,\n  messageId: emailMessageId \n};"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        384,
+        208
+      ],
+      "id": "0aefb856-e7ca-4ed0-ba7b-6ce5eedd4848",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "chatId": "1564368734",
+        "text": "=⚠️ Tinjauan Email Diperlukan ⚠️  Email ini TIDAK dihapus, tapi AI mendeteksinya. Mohon periksa secara manual.  \n- Skor AI: {{ $json.score }}/10 \n- Dari: {{ $('Gmail Trigger').item.json.From }}\n- Subjek: {{ $('Gmail Trigger').item.json.Subject }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        800,
+        304
+      ],
+      "id": "2858008b-03f5-4b27-848e-a2fa7609f349",
+      "name": "Send a text message1",
+      "webhookId": "ec9b8a16-d978-414a-a8f0-7ef3cf6386cd",
+      "credentials": {
+        "telegramApi": {
+          "id": "g18uN5UdGv6IWagT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Gmail Trigger').item.json.id }}",
+        "labelIds": [
+          "SPAM"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        800,
+        112
+      ],
+      "id": "324ad612-c13f-4a9e-a9ef-74a4f5088983",
+      "name": "Add label to message",
+      "webhookId": "83c87abb-a32c-45be-89a5-26ad563a612d",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "MZwvrYoFZzNTQrDQ",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "20448a4c-445c-436c-b093-941ff5b97568",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "zakymeh1933@gmail.com",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "ac5a2bb5-979a-42b7-8e59-a1e0d1239e40",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "balebybtn@btn.co.id",
+              "operator": {
+                "type": "string",
+                "operation": "contains"
+              }
+            },
+            {
+              "id": "7671a9f5-9f12-4b1f-808c-e17a4d3fdee7",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "no-reply@spotify.com",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "9d40475c-5697-4d48-b483-a84f9ae317a5",
+              "leftValue": "={{ $json.From }}",
+              "rightValue": "zmlrfn@gmail.com",
+              "operator": {
+                "type": "string",
+                "operation": "equals",
+                "name": "filter.operator.equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -192,
+        192
+      ],
+      "id": "53623961-307d-4ead-9cf8-62a1ba7e9daf",
+      "name": "Cek Allowlist"
+    },
+    {
+      "parameters": {
+        "chatId": "1564368734",
+        "text": "=Ada email baru dari: {{ $('Gmail Trigger').item.json.From }}\nSubject: {{ $('Gmail Trigger').item.json.Subject }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "id": "fa3514fc-d2e9-4b3d-9ab1-f5a0b3e66451",
+      "name": "Reminder Email dari Allowlist",
+      "webhookId": "88566755-816b-41f0-a665-13e4108992f6",
+      "credentials": {
+        "telegramApi": {
+          "id": "g18uN5UdGv6IWagT",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analisis teks email ini untuk tanda-tanda phishing keuangan. Fokus pada urgensi palsu, tautan mencurigakan, permintaan info pribadi, atau peniruan identitas bank. Beri skor bahaya dari 1 sampai 10. Jawab HANYA dengan format: 'Skor: [angka]'.\\n\\nEmail:{{ $json.snippet }}  Subject:{{ $json.Subject }}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        32,
+        208
+      ],
+      "id": "d2b27418-eeea-4639-8b9a-e2586bd65afd",
+      "name": "Analisa Phising"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "cbc0915b-b144-4a79-9f11-35f05bd2a579",
+              "leftValue": "={{ $json.score }}",
+              "rightValue": 6,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        208
+      ],
+      "id": "dbb814da-3421-4aed-b6b9-0a66c12a9665",
+      "name": "Cek Skor Bahaya"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Cek Allowlist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Analisa Phising",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Cek Skor Bahaya",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Allowlist": {
+      "main": [
+        [
+          {
+            "node": "Reminder Email dari Allowlist",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Analisa Phising",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analisa Phising": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cek Skor Bahaya": {
+      "main": [
+        [
+          {
+            "node": "Add label to message",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a text message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "8faac38f-af49-4724-b0fa-1d8e87c73b5e",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "8cc0eeade57669f0b770595d75740d782dc713341b8717109d9eab32ed5f8f6b"
+  },
+  "id": "3QR7TcN3aPTEwLVS",
+  "tags": []
+}
